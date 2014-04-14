@@ -1,0 +1,11 @@
+{% load i18n %}
+{% if display_form %}
+	<h3>Leave a Comment</h3>
+	<form action="{{ site_url }}comments/postfree/" method="post">
+		<ul>{{ form.as_ul }}
+			<li><input type="submit" class="button" id="preview" name="preview" value="Preview" /></li>
+			<li>Comments use <a href="http://daringfireball.net/projects/markdown/" rel="popup">Markdown</a> syntax.  HTML may be stripped. Preview is your friend.</li>
+			<li><a href="http://akismet.com" rel="popup"><img alt="Akismet" src="{{ media_url }}images/akismet-100x38.png" /></a></li>
+		</ul>
+	</form>	
+{% endif %}

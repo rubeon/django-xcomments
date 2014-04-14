@@ -1,0 +1,10 @@
+{% extends "xblog/blog_base.html" %}
+
+{% block maincontent %}
+	
+
+<h3>Comment Posted!</h3>
+<p><a href="{{ object.get_absolute_url }}#comments">View comments on the original post.</a></p>
+<p>If you're a comment spammer, you're as good as dead.</p>
+
+{% endblock %}

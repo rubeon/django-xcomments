@@ -1,0 +1,145 @@
+{% extends "xblog/blog_base.html" %}
+{% load markup %}
+{% block maincontent %}
+<h3>Preview your comment</h3>
+
+<div class="comment" id="c{{ comment.id }}">
+	<span class="comnum"><a id="c{{ comment.id }}" href="#c{{ comment.id }}"></a></span>
+	<h3><a href="{{comment.person_url}}">{{ comment.person_name }}</a></h3>
+    <small class="postmeta"><a class="commentslink">{{ comment.submit_date|date:"F j, Y" }} at {{ comment.submit_date|date:"P" }}:</a></small>
+	{{ comment.comment|urlizetrunc:40|markdown:"footnotes" }}
+</div>
+
+
+<div id="commentform">
+		<form action="{{ site_url }}comments/postfree/" method="post">
+		{% if newform.has_errors %}
+			<p><em>Please check for the following error(s):</em></p>
+		{% endif %}
+			<ul>
+				{{ newform.as_ul }}
+
+					<li><input type="submit" class="button" id="preview" name="preview" value="Preview" />						<input type="submit" class="button" id="submit" name="post" value="Post" />	</li>
+					<li>Comments use <a href="http://daringfireball.net/projects/markdown/" target="_blank">Markdown</a> syntax.  HTML may be stripped. Preview is your friend.</li>
+					<li><a href="http://akismet.com" target="_blank"><img src="{{ media_url }}images/akismet-100x38.png" border="0" /></a></li>
+		</ul>
+	
+</div>
+{% comment %}
+<h3>Preview your comment</h3>
+	<form action="/comments/postfree/" method="post">
+		<table border="1" cellspacing="5" cellpadding="5" summary="Comment Form">
+		{% if comment_form.has_errors %}
+		<tr>
+			<td colspan="3">Please check the form and try again.</td>
+		</tr>
+		{% else %}
+		<tr>
+			<td>Name:</td>
+			<td colspan="2">
+				{% if comment.person_url %}<a href="{{ comment.person_url}}">{% endif %}
+				{{ comment.person_name }}
+				{% if comment.person_url %}</a>{% endif %}
+				</td>
+		</tr>
+		<tr>
+			<td>Email:</td>
+			<td>{{ comment.person_email }}</td>
+		</tr>
+		<tr>
+			<td>Comment:</td>
+			<td>{{ comment.comment|escape|urlizetrunc:"40"|markdown }}</td>
+		</tr>
+	</table>
+			    <p><input type="submit" name="post" value="Post public comment" /></p>
+
+			    <h3>Or edit it again</h3>
+		{% endif	%} 
+		
+		<fieldset>
+	 <fieldset>
+		    <label for="id_person_name">Name:</label>
+		    <span  class="help_text input">{% for error in comment_form.person_name.errors %}
+			    <strong>{{ error }}</strong>
+			{% endfor %}&nbsp;</span>
+			{{ comment_form.person_name }}
+		  </fieldset>
+		  <fieldset>
+		    <label for="id_person_email">E-mail:</label>
+		    <span class="help_text input">{% for error in comment_form.person_email.errors %}
+			    <strong>{{ error }}</strong>
+			{% endfor %}&nbsp;</span>
+			{{ comment_form.person_email }}
+		  </fieldset>
+		  <fieldset>
+		    <label for="id_person_url">URL:</label>
+			<span class="help_text input">{% if comment_form.person_url.errors %}
+			    <strong>{{ comment_form.person_url.html_error_list }}</strong>
+			{% endif %}&nbsp;</span>
+			{{ comment_form.person_url }}
+		  </fieldset>
+		  <fieldset>
+		    <label for="id_comment">Comment:</label><span class="help_text input">
+				{% for error in comment_form.comment.errors %}<strong>{{ error }}</strong>{% endfor %}
+			&nbsp;</span>
+				<div id="commentformbody">
+			{{ comment_form.comment }}					
+				</div>
+
+		   	<input type="hidden" name="options" value="{{ options }}" />
+			<input type="hidden" name="target" value="{{ target }}" />
+			<input type="hidden" name="gonzo" value="{{ hash }}" />
+		  </fieldset>
+		  <fieldset class="submit">
+		    <label for="post">&nbsp;</label>
+		    <input type="submit" class="button" id="preview" name="preview" value="Preview" />
+		  </fieldset>
+		</fieldset>
+		<p><a href="http://akismet.com" target="_blank"><img src="{{ media_url }}images/akismet-100x38.png" border="0" />
+
+</form>
+
+
+
+
+<form action="../postfree/" method="post">
+	{% if comment_form.has_errors %}
+	    <p><strong style="color: red;">Please correct the following errors.</strong></p>
+	{% else %}
+	    <div class="comment">
+	    {{ comment.comment|escape|urlizetrunc:"40"|linebreaks }}
+	    <p class="date small">Posted by <strong>{{ comment.person_name }}</strong></p>
+	    </div>
+
+	    <p><input type="submit" name="post" value="Post public comment" /></p>
+
+	    <h3>Or edit it again</h3>
+	{% endif %}
+
+	{% if comment_form.person_name.errors %}
+	    {{ comment_form.person_name.html_error_list }}
+	{% endif %}
+
+	<p><label for="id_person_name">Your name:</label> {{ comment_form.person_name }}</p>
+
+	{% if comment_form.comment.errors %}
+		{{ comment_form.comment.html_error_list }}
+	{% endif %}
+
+	<p>
+		<label for="id_comment">Comment:</label>
+		<br />
+		{{ comment_form.comment }}
+	</p>
+	
+	<input type="hidden" name="options" value="{{ options }}" />
+	<input type="hidden" name="target" value="{{ target }}" />
+	<input type="hidden" name="gonzo" value="{{ hash }}" />
+	
+	<p>
+		<input type="submit" name="preview" value="Preview revised comment" />
+	</p>
+</form>
+	{% endcomment %}
+
+{% endblock %}
