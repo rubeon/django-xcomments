@@ -18,9 +18,10 @@ from django.contrib.sites.models import Site
 from django.utils.translation import ungettext, ugettext as _
 
 import base64, datetime
-
+import logging
+LOGGER=logging.getLogger(__name__)
 COMMENTS_PER_PAGE = 20
-print "IMPORTING xcomments.views.comments"
+LOGGER.debug("IMPORTING xcomments.views.comments")
 
 class PublicCommentManipulator(AuthenticationForm):
     "Manipulator that handles public registered comments"
@@ -93,7 +94,7 @@ class PublicCommentManipulator(AuthenticationForm):
             datetime.datetime.now(), new_data["is_public"], new_data["ip_address"], False, settings.SITE_ID)
 
     def save(self, new_data):
-        print "PublicCommentManipulator save()"
+        LOGGER.debug( "PublicCommentManipulator save()")
         today = datetime.date.today()
         c = self.get_comment(new_data)
         for old in Comment.objects.filter(content_type__id__exact=new_data["content_type_id"],
@@ -183,10 +184,10 @@ class PublicFreeCommentManipulator(oldforms.Manipulator):
             site = Site.objects.get(pk=settings.SITE_ID)
         )
     def save(self, new_data):
-        print "Manipulator Save"
+        LOGGER.debug( "Manipulator Save")
         today = datetime.date.today()
         c = self.get_comment(new_data)
-        print c
+        LOGGER.debug( c)
         # Check that this comment isn't duplicate. (Sometimes people post
         # comments twice by mistake.) If it is, fail silently by pretending
         # the comment was posted successfully.
@@ -196,7 +197,7 @@ class PublicFreeCommentManipulator(oldforms.Manipulator):
             submit_date__day=today.day):
             if old_comment.comment == c.comment:
                 return old_comment
-        print "Finishing manipulator for",c.__class__
+        LOGGER.debug( "Finishing manipulator for",c.__class__)
         c.save()
         return c
 
@@ -231,15 +232,15 @@ def post_comment(request):
             choice of ratings
     """
     if not request.POST:
-        raise Http404, _("Only POSTs are allowed")
+        raise Http404(_("Only POSTs are allowed"))
     try:
         options, target, security_hash = request.POST['options'], request.POST['target'], request.POST['gonzo']
     except KeyError:
-        raise Http404, _("One or more of the required fields wasn't submitted")
+        raise Http404(_("One or more of the required fields wasn't submitted"))
     photo_options = request.POST.get('photo_options', '')
     rating_options = normalize_newlines(request.POST.get('rating_options', ''))
     if Comment.objects.get_security_hash(options, photo_options, rating_options, target) != security_hash:
-        raise Http404, _("Somebody tampered with the comment form (security violation)")
+        raise Http404(_("Somebody tampered with the comment form (security violation)"))
     # Now we can be assured the data is valid.
     if rating_options:
         rating_range, rating_choices = Comment.objects.get_rating_options(base64.decodestring(rating_options))
@@ -249,7 +250,7 @@ def post_comment(request):
     try:
         obj = ContentType.objects.get(pk=content_type_id).get_object_for_this_type(pk=object_id)
     except ObjectDoesNotExist:
-        raise Http404, _("The comment form had an invalid 'target' parameter -- the object ID was invalid")
+        raise Http404(_("The comment form had an invalid 'target' parameter -- the object ID was invalid"))
     option_list = options.split(',') # options is something like 'pa,ra'
     new_data = request.POST.copy()
     new_data['content_type_id'] = content_type_id
@@ -300,7 +301,7 @@ def post_comment(request):
             comment = manipulator.save(new_data)
         return HttpResponseRedirect("../posted/?c=%s:%s" % (content_type_id, object_id))
     else:
-        raise Http404, _("The comment form didn't provide either 'preview' or 'post'")
+        raise Http404(_("The comment form didn't provide either 'preview' or 'post'"))
 
 
 class PublicFreeCommentForm(newforms.Form):
@@ -332,21 +333,21 @@ def post_free_comment(request):
             security hash (must be included in a posted form to succesfully
             post a comment).
     """
-    print "post_free_comment called"
+    LOGGER.debug( "post_free_comment called")
     if not request.POST:
-        raise Http404, _("Only POSTs are allowed")
+        raise Http404(_("Only POSTs are allowed"))
     try:
         options, target, security_hash = request.POST['options'], request.POST['target'], request.POST['gonzo']
     except KeyError:
-        raise Http404, _("One or more of the required fields wasn't submitted")
+        raise Http404(_("One or more of the required fields wasn't submitted"))
     if Comment.objects.get_security_hash(options, '', '', target) != security_hash:
-        raise Http404, _("Somebody tampered with the comment form (security violation)")
+        raise Http404(_("Somebody tampered with the comment form (security violation)"))
     content_type_id, object_id = target.split(':') # target is something like '52:5157'
     content_type = ContentType.objects.get(pk=content_type_id)
     try:
         obj = content_type.get_object_for_this_type(pk=object_id)
     except ObjectDoesNotExist:
-        raise Http404, _("The comment form had an invalid 'target' parameter -- the object ID was invalid")
+        raise Http404( _("The comment form had an invalid 'target' parameter -- the object ID was invalid"))
     option_list = options.split(',')
     new_data = request.POST.copy()
     # print "NEWDATA", new_data
@@ -359,7 +360,7 @@ def post_free_comment(request):
     new_data['ip_address'] = request.META['REMOTE_ADDR']
     # new_data['is_public'] = IS_PUBLIC in option_list
     ak_api = Akismet(key=settings.AKISMET_API_KEY, blog_url='http://%s/' % Site.objects.get(pk=settings.SITE_ID).domain)
-    print "CHECKING AKISMET"
+    LOGGER.debug( "CHECKING AKISMET")
     if ak_api.verify_key():
         ak_data = {
             'user_ip': request.META.get('REMOTE_ADDR', '127.0.0.1'),
@@ -374,7 +375,6 @@ def post_free_comment(request):
         except:
           res = True
         
-        # print "AK_RES:", res
         if res:
             new_data['is_public'] = False
         else:
@@ -382,8 +382,6 @@ def post_free_comment(request):
     del(ak_api)            
     manipulator = PublicFreeCommentManipulator()
     errors = manipulator.get_validation_errors(new_data)
-    # print 20*"x"
-    # print "ERRORS:", errors
     if errors or request.POST.has_key('preview'):
         comment = errors and '' or manipulator.get_comment(new_data)
         return render_to_response('xcomments/free_preview.html', {
@@ -406,7 +404,7 @@ def post_free_comment(request):
         del(manipulator)
         return HttpResponseRedirect("../posted/?c=%s:%s" % (content_type_id, object_id))
     else:
-        raise Http404, _("The comment form didn't provide either 'preview' or 'post'")
+        raise Http404(_("The comment form didn't provide either 'preview' or 'post'"))
 
 
 

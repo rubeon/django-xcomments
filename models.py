@@ -10,6 +10,9 @@ from django.core.mail import mail_managers , send_mail
 import datetime
 from django.conf import settings
 
+import logging
+LOGGER=logging.getLogger(__name__)
+
 MIN_PHOTO_DIMENSION = 5
 MAX_PHOTO_DIMENSION = 1000
 
@@ -67,8 +70,8 @@ class CommentManager(models.Manager):
         return False
 
 class Comment(models.Model):
-    user = models.ForeignKey(User, raw_id_admin=True)
-    content_type = models.ForeignKey(ContentType)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.IntegerField(_('object ID'))
     headline = models.CharField(_('headline'), max_length=255, blank=True)
     comment = models.TextField(_('comment'), max_length=3000)
@@ -89,7 +92,7 @@ class Comment(models.Model):
     is_public = models.BooleanField(_('is public'))
     ip_address = models.IPAddressField(_('IP address'), blank=True, null=True)
     is_removed = models.BooleanField(_('is removed'), help_text=_('Check this box if the comment is inappropriate. A "This comment has been removed" message will be displayed instead.'))
-    site = models.ForeignKey(Site)
+    site = models.ForeignKey(Site,  on_delete=models.CASCADE)
     objects = CommentManager()
     class Meta:
         verbose_name = _('comment')
@@ -172,7 +175,7 @@ class ModeratedCommentManager(models.Manager):
 
 class FreeComment(models.Model):
     # A FreeComment is a comment by a non-registered user.
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey(ContentType,  on_delete=models.CASCADE)
     object_id = models.IntegerField(_('object ID'))
     comment = models.TextField(_('comment'), max_length=3000)
     person_name = models.CharField(_("person's name"), max_length=100)
@@ -182,13 +185,13 @@ class FreeComment(models.Model):
     ip_address = models.IPAddressField(_('ip address'))
     # custom fields by me...
     person_email = models.EmailField()
-    person_url = models.URLField(blank=True, verify_exists=True)
+    person_url = models.URLField(blank=True)
     objects = models.Manager()
     public_comments = ModeratedCommentManager()
     
     # TODO: Change this to is_removed, like Comment
     # approved = models.BooleanField(_('approved by staff'))
-    site = models.ForeignKey(Site)
+    site = models.ForeignKey(Site,  on_delete=models.CASCADE)
     class Meta:
         verbose_name = _('free comment')
         verbose_name_plural = _('free comments')
@@ -231,37 +234,37 @@ class FreeComment(models.Model):
         #if not self.id: 
         #    if not self.get_content_object().comment_period_open(): 
         #        self.is_public = False
-        print "SAVING"
+        LOGGER.debug("SAVING")
         # self.site = Site.objects.get(id__exact=settings.SITE_ID)
-	self.site = Site.objects.get_current()
-	print 20 * "-"
-	print self.site.name
-	if not self.submit_date:
-	    self.submit_date = datetime.datetime.now()
+        self.site = Site.objects.get_current()
+        LOGGER.debug( 20 * "-")
+        LOGGER.debug(self.site.name)
+        if not self.submit_date:
+            self.submit_date = datetime.datetime.now()
         if self.person_email != "sdfxvf3@usa.net":
           super(self.__class__, self).save()
         # mail_subject = 'New comment posted on %s "%s"' % (self.site.name, self.site.name, self.get_content_object().title)
         obj = self.get_content_object()
-        print "got obj..."
-        print obj.title
+        LOGGER.debug( "got obj...")
+        LOGGER.debug( obj.title)
         # mail_subject = 'New comment posted on %s "%s"' % (self.site.name, obj.title)
 
         mail_subject = '[%s] New comment: %s' % (self.site.name, obj.title)
-        print mail_subject
+        LOGGER.debug( mail_subject)
         t = loader.get_template('xcomments/notify_email.html')
         c = Context({
             'comment':self
         })
-        print "Mailing..."
+        LOGGER.debug( "Mailing...")
         mail_body = t.render(c)
         mail_body = 'On %s, %s posted the following comment on "%s":\n\n%s\n\n%s' % (self.submit_date.strftime("%A, %B %d, %Y at %I:%M %p"), self.person_name, obj.title, self.comment, obj.get_absolute_url())
         # mail_body = 
-        print "Mailing Managers..."
-        print mail_body
+        LOGGER.debug( "Mailing Managers...")
+        LOGGER.debug( mail_body)
         # try to get the author's email
         try:
           email = [obj.author.email]
-        except Exception, e:
+        except Exception as e:
           mail_body = mail_body + str(e)
           email = []
           for manager in settings.MANAGERS:
@@ -295,8 +298,8 @@ class KarmaScoreManager(models.Manager):
         return int(round((4.5 * score) + 5.5))
 
 class KarmaScore(models.Model):
-    user = models.ForeignKey(User)
-    comment = models.ForeignKey(Comment)
+    user = models.ForeignKey(User,  on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment,  on_delete=models.CASCADE)
     score = models.SmallIntegerField(_('score'), db_index=True)
     scored_date = models.DateTimeField(_('score date'), auto_now=True)
     objects = KarmaScoreManager()
@@ -327,8 +330,8 @@ class UserFlagManager(models.Manager):
             f.save()
 
 class UserFlag(models.Model):
-    user = models.ForeignKey(User)
-    comment = models.ForeignKey(Comment)
+    user = models.ForeignKey(User,  on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment,  on_delete=models.CASCADE)
     flag_date = models.DateTimeField(_('flag date'), auto_now_add=True)
     objects = UserFlagManager()
     class Meta:
@@ -340,8 +343,8 @@ class UserFlag(models.Model):
         return _("Flag by %r") % self.user
 
 class ModeratorDeletion(models.Model):
-    user = models.ForeignKey(User, verbose_name='moderator')
-    comment = models.ForeignKey(Comment)
+    user = models.ForeignKey(User, verbose_name='moderator',  on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment,  on_delete=models.CASCADE)
     deletion_date = models.DateTimeField(_('deletion date'), auto_now_add=True)
     class Meta:
         verbose_name = _('moderator deletion')
