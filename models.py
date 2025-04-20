@@ -90,7 +90,7 @@ class Comment(models.Model):
     valid_rating = models.BooleanField(_('is valid rating'))
     submit_date = models.DateTimeField(_('date/time submitted'), auto_now_add=True)
     is_public = models.BooleanField(_('is public'))
-    ip_address = models.IPAddressField(_('IP address'), blank=True, null=True)
+    ip_address = models.GenericIPAddressField(_('IP address'), blank=True, null=True)
     is_removed = models.BooleanField(_('is removed'), help_text=_('Check this box if the comment is inappropriate. A "This comment has been removed" message will be displayed instead.'))
     site = models.ForeignKey(Site,  on_delete=models.CASCADE)
     objects = CommentManager()
@@ -182,7 +182,7 @@ class FreeComment(models.Model):
     # submit_date = models.DateTimeField(_('date/time submitted'), auto_now_add=True)
     submit_date = models.DateTimeField(_('date/time submitted'))
     is_public = models.BooleanField(_('is public'))
-    ip_address = models.IPAddressField(_('ip address'))
+    ip_address = models.GenericIPAddressField(_('ip address'))
     # custom fields by me...
     person_email = models.EmailField()
     person_url = models.URLField(blank=True)
